@@ -6,11 +6,11 @@ import time
 from abc import ABC
 from asyncio.futures import Future
 
-from tutorial.asyncoro import VariableExchanger
+from tutorial.protocol import Exchanger
 
 
 class Party:
-    """Information about a party in the MPC protocol."""
+    """Information about a party in the protocol."""
 
     def __init__(self, pid, host=None, port=None):
         """Initialize a party with given party identity pid."""
@@ -27,7 +27,7 @@ class Party:
         return '<Party {}: {}:{}>'.format(self.pid, self.host, self.port)
 
     def send(self, var):
-        assert var.done(), "Variable {} has to be feed first".format(var.name)
+        assert var.done(), "Variable {} has to be fed first".format(var.name)
         b = pickle.dumps(var.result())
         self.protocol.send_data(var.pc, b)
 
@@ -60,16 +60,16 @@ def to_future(func):
         name += ','.join(repr(a) for a in args)
         name += ','.join('{}_{}'.format(k, v) for k, v in kwargs.items()) + ')'
 
-        d = self.loop.create_task(func(self, *args, **kwargs))
+        task = self.loop.create_task(func(self, *args, **kwargs))
         v = Op(self, name=name)
-        d.add_done_callback(lambda x: v.set_result(x.result()))
+        task.add_done_callback(lambda x: v.set_result(x.result()))
         return v
 
     return wrapper
 
 
 async def handle_awaitable(this):
-    if asyncio.iscoroutine(this) or asyncio.isfuture(this):
+    if isinstance(this, FutureWrapper):
         this = await this
     return this
 
@@ -108,7 +108,7 @@ class Runtime:
 
         # Creating the server
         if self.pid:
-            factory = lambda: VariableExchanger(self)
+            factory = lambda: Exchanger(self)
             server = await loop.create_server(factory, port=self.port)
             logging.debug(f'Listening on port {self.port}')
 
@@ -116,7 +116,7 @@ class Runtime:
         for peer in self.parties[self.pid + 1:]:
             while True:
                 try:
-                    factory = lambda: VariableExchanger(self, peer.pid)
+                    factory = lambda: Exchanger(self, peer.pid)
                     await loop.create_connection(factory, peer.host, peer.port)
                     logging.debug(f'Connected to {peer.host}:{peer.port}')
                     break
@@ -184,7 +184,7 @@ class Runtime:
         self.variables.add(var)
         return var
 
-    async def feed(self, names):
+    def feed(self, names):
         for k, v in names.items():
             if k not in self.variables:
                 raise Exception('Variable {} does not exist'.format(k))

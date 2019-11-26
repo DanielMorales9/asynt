@@ -159,6 +159,6 @@ def create_parties(addresses, base_port=None):
 
 
 try:  # suppress exceptions for pydoc etc.
-    dag = setup()
+    asynt = setup()
 except Exception as exc:
     print('runtime.setup() exception:', exc)

@@ -2,7 +2,7 @@ import struct
 from asyncio.protocols import Protocol
 
 
-class VariableExchanger(Protocol):
+class Exchanger(Protocol):
 
     def __init__(self, rt, peer_pid=None):
         self.runtime = rt
@@ -19,9 +19,9 @@ class VariableExchanger(Protocol):
         if self.peer_pid is not None:  # party is client (peer is server)
             pid = self.runtime.pid.to_bytes(1, 'little')  # send pid
             transport.write(pid)
-            self.handshake()
+            self._handshake()
 
-    def handshake(self):
+    def _handshake(self):
         self.runtime.parties[self.peer_pid].protocol = self
         if all(p.protocol is not None for p in self.runtime.parties):
             self.runtime.parties[self.runtime.pid].protocol.set_result(
@@ -50,7 +50,7 @@ class VariableExchanger(Protocol):
             peer_pid = int.from_bytes(self.bytes[:1], 'little')
             self.peer_pid = peer_pid
             len_packet = 1
-            self.handshake()
+            self._handshake()
             del self.bytes[:len_packet]
 
         while self.bytes:
@@ -66,6 +66,7 @@ class VariableExchanger(Protocol):
 
             del self.bytes[:len_packet]
             payload = unpacked[-1]
+
             if pc in self.buffer:
                 self.buffer[pc].set_result(payload)
             else:
