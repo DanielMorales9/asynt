@@ -1,2 +1,2 @@
 # asynt (asyncio tutorial)
-A gentle tutorial for the asyncio programming paradigm 
+A <strike>gentle</strike> tutorial for the asyncio programming paradigm 
